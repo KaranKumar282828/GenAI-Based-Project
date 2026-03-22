@@ -1,0 +1,19 @@
+4 layerss architecture to build frontend
+
+
+UI -> routing, navigation bhi add hai
+=>component
+=>pages
+
+
+Hook -> for managing state and api layers
+=>hooks
+
+State -> data store -> to show user state and loading state
+=> auth.context.jsx
+=> ai.context.jsx
+
+
+API -> for communication with backend
+=>services
+ =>auth.api.js
