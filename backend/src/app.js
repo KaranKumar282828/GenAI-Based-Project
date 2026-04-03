@@ -11,15 +11,17 @@ app.use(cors({
     credentials: true // allow cookies to be sent with requests
 }));
 
-app.use(express.json()); // middlewaere to parse JSON request bodies
+app.use(express.json()); // middleware to parse JSON request bodies
 app.use(cookieParser()); // middleware to parse cookies from incoming requests
 
 //  require all the routes here
 const authRouter = require("./routes/auth.routes");
+const interviewRouter = require("./routes/interview.routes")
 
 
 // using all the routes here
 app.use("/api/auth", authRouter)
+app.use("/api/interview", interviewRouter)
 
 
 
