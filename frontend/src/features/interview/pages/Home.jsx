@@ -6,29 +6,18 @@ import { useNavigate } from "react-router"
 
 const Home = () => {
 
-    const { loading, generateReport, reports, error } = useInterview()
-    // ✅ error bhi lo — user ko dikhana hai
+    const { generatingReport, fetchingReports, generateReport, reports, error } = useInterview()
 
     const [ jobDescription, setJobDescription ] = useState("")
     const [ selfDescription, setSelfDescription ] = useState("")
     const [ jobDescCharCount, setJobDescCharCount ] = useState(0)
-    // ✅ Char counter real time
-
     const [ validationError, setValidationError ] = useState(null)
-    // ✅ Frontend validation error
-
     const [ selectedFileName, setSelectedFileName ] = useState(null)
-    // ✅ User ko pata chale kaunsi file select hui
 
     const resumeInputRef = useRef()
     const navigate = useNavigate()
 
 
-    /**
-     * ✅ LESSON 121: Frontend validation — API call se pehle
-     * Resume ya selfDescription — koi ek toh hona chahiye
-     * JobDescription bhi required hai
-     */
     const validate = () => {
         if (!jobDescription.trim()) {
             setValidationError("Job description is required.")
@@ -49,35 +38,38 @@ const Home = () => {
 
 
     const handleGenerateReport = async () => {
-        if (!validate()) return  // ✅ Validate pehle
+        if (!validate()) return
 
         const resumeFile = resumeInputRef.current?.files?.[0]
-
-        /**
-         * ✅ LESSON 122: Navigate sirf success pe
-         * data null ho toh crash hoga — pehle check karo
-         */
         const data = await generateReport({ jobDescription, selfDescription, resumeFile })
 
         if (data?._id) {
             navigate(`/interview/${data._id}`)
         }
-        // ✅ Agar null — useInterview ne error set kar diya hoga
-    }
-
-
-    if (loading) {
-        // ✅ Spinner use karo — text nahi
-        return (
-            <main className="loading-screen">
-                <div className="spinner-lg" />
-            </main>
-        )
     }
 
 
     return (
         <div className="home-page">
+
+            {/* ✅ Reports fetch hote waqt top pe loading bar */}
+            {fetchingReports && (
+                <div className="loading-bar">
+                    <div className="loading-bar__fill" />
+                </div>
+            )}
+
+            {/* ✅ AI Generate hote waqt full overlay — page visible rahe */}
+            {generatingReport && (
+                <div className="generating-overlay">
+                    <div className="generating-overlay__box">
+                        <div className="spinner-lg" />
+                        <h3>Analyzing your profile...</h3>
+                        <p>AI is generating your personalized interview strategy</p>
+                        <p className="generating-overlay__time">⏱ This may take 20-30 seconds</p>
+                    </div>
+                </div>
+            )}
 
             {/* Page Header */}
             <header className="page-header">
@@ -85,7 +77,7 @@ const Home = () => {
                 <p>Let our AI analyze the job requirements and your unique profile to build a winning strategy.</p>
             </header>
 
-            {/* ✅ LESSON 123: Error banner — API aur validation dono dikhao */}
+            {/* Error Banner */}
             {(error || validationError) && (
                 <div className="error-banner">
                     {validationError || error}
@@ -109,15 +101,15 @@ const Home = () => {
                             onChange={(e) => {
                                 setJobDescription(e.target.value)
                                 setJobDescCharCount(e.target.value.length)
-                                // ✅ Validation error clear karo jab type kare
                                 if (validationError) setValidationError(null)
                             }}
                             value={jobDescription}
                             className="panel__textarea"
                             placeholder={`Paste the full job description here...\ne.g. 'Senior Frontend Engineer at Google requires proficiency in React, TypeScript, and large-scale system design...'`}
                             maxLength={5000}
+                            // ✅ Generating hote waqt disable
+                            disabled={generatingReport}
                         />
-                        {/* ✅ LESSON 124: Real time char counter */}
                         <div className={`char-counter ${jobDescCharCount >= 4500 ? "char-counter--warning" : ""}`}>
                             {jobDescCharCount} / 5000 chars
                         </div>
@@ -146,7 +138,6 @@ const Home = () => {
                                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>
                                 </span>
 
-                                {/* ✅ LESSON 125: File name dikhao — user ko confirm karo */}
                                 {selectedFileName ? (
                                     <>
                                         <p className="dropzone__title dropzone__title--selected">
@@ -157,7 +148,6 @@ const Home = () => {
                                 ) : (
                                     <>
                                         <p className="dropzone__title">Click to upload or drag &amp; drop</p>
-                                        {/* ✅ LESSON 126: .docx hata diya — backend sirf PDF leta hai */}
                                         <p className="dropzone__subtitle">PDF only (Max 5MB)</p>
                                     </>
                                 )}
@@ -175,7 +165,8 @@ const Home = () => {
                                     type="file"
                                     id="resume"
                                     name="resume"
-                                    accept=".pdf"   // ✅ Sirf PDF
+                                    accept=".pdf"
+                                    disabled={generatingReport}
                                 />
                             </label>
                         </div>
@@ -196,6 +187,7 @@ const Home = () => {
                                 name="selfDescription"
                                 className="panel__textarea panel__textarea--short"
                                 placeholder="Briefly describe your experience, key skills, and years of experience if you don't have a resume handy..."
+                                disabled={generatingReport}
                             />
                         </div>
 
@@ -212,12 +204,22 @@ const Home = () => {
                 {/* Card Footer */}
                 <div className="interview-card__footer">
                     <span className="footer-info">AI-Powered Strategy Generation &bull; Approx 30s</span>
+                    {/* ✅ generatingReport use karo — loading nahi */}
                     <button
                         onClick={handleGenerateReport}
-                        disabled={loading}  // ✅ Loading mein double click rokna
+                        disabled={generatingReport}
                         className="generate-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
-                        {loading ? "Generating..." : "Generate My Interview Strategy"}
+                        {generatingReport ? (
+                            <>
+                                <div className="spinner-sm" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            <>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" /></svg>
+                                Generate My Interview Strategy
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
@@ -232,7 +234,6 @@ const Home = () => {
                                 key={report._id}
                                 className="report-item"
                                 onClick={() => navigate(`/interview/${report._id}`)}
-                                // ✅ LESSON 127: Accessibility — keyboard users ke liye
                                 role="button"
                                 tabIndex={0}
                                 onKeyDown={(e) => e.key === "Enter" && navigate(`/interview/${report._id}`)}

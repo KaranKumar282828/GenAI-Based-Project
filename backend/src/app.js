@@ -2,34 +2,16 @@ const express = require("express")
 const cookieParser = require("cookie-parser")
 const cors = require("cors")
 const helmet = require("helmet")
-const mongoSanitize = require("express-mongo-sanitize")
 
 const app = express()
 
-
-/**
- * ✅ LESSON 37: Helmet — Security Headers
- * Ye automatically important HTTP security headers lagata hai jaise:
- * - X-Content-Type-Options: browser ko MIME sniffing se rokta hai
- * - X-Frame-Options: clickjacking attacks rokta hai
- * - Strict-Transport-Security: HTTPS enforce karta hai
- * Ek line mein bahut saari security milti hai
- */
-app.use(helmet())
-
-
-/**
- * ✅ LESSON 38: CORS — Sahi tarike se configure karo
- * Production mein hardcode mat karo origin
- * Environment variable se lo
- */
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(",")  // "http://localhost:5173,https://myapp.com"
-    : [ "http://localhost:5173" ]              // fallback for development
+    ? process.env.ALLOWED_ORIGINS.split(",")
+    : [ "http://localhost:5173" ]
 
+// ✅ CORS pehle lagao — helmet se pehle!
 app.use(cors({
     origin: (origin, callback) => {
-        // ✅ Postman/server-to-server calls allow karo (origin undefined hoti hai)
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true)
         } else {
@@ -39,33 +21,26 @@ app.use(cors({
     credentials: true
 }))
 
+// ✅ Helmet baad mein — aur crossOriginResourcePolicy disable karo
+app.use(helmet({
+    crossOriginResourcePolicy: false,       // ✅ CORS requests block nahi karega
+    crossOriginOpenerPolicy: false,         // ✅ Cross origin requests allow karega
+    contentSecurityPolicy: false,           // ✅ Development mein off rakho
+}))
 
-/**
- * ✅ LESSON 39: Request size limit
- * Bina limit ke koi bhi bahut bada JSON body bhej sakta hai
- * Server crash ho sakta hai — DOS attack possible hai
- */
 app.use(express.json({ limit: "10kb" }))
 app.use(express.urlencoded({ extended: true, limit: "10kb" }))
 app.use(cookieParser())
 
-
-/**
- * ✅ LESSON 40: MongoDB Injection Sanitization
- * express-mongo-sanitize v2.x doesn't support Express 5 (req.query is read-only)
- * So we implement custom sanitization for just req.body
- * This prevents MongoDB operator injection attacks
- */
-function mongoSanitizeMiddleware(req, res, next) {
-    // Only sanitize req.body, not req.query (which is read-only in Express 5)
+// ✅ Custom sanitizer
+app.use((req, res, next) => {
     if (req.body) {
         const sanitize = (obj) => {
-            if (typeof obj !== 'object' || obj === null) return obj
-            
+            if (typeof obj !== "object" || obj === null) return obj
             for (const key in obj) {
-                if (key.startsWith('$')) {
+                if (key.startsWith("$")) {
                     delete obj[key]
-                } else if (typeof obj[key] === 'object') {
+                } else if (typeof obj[key] === "object") {
                     sanitize(obj[key])
                 }
             }
@@ -73,62 +48,44 @@ function mongoSanitizeMiddleware(req, res, next) {
         sanitize(req.body)
     }
     next()
-}
-app.use(mongoSanitizeMiddleware)
+})
 
+// ✅ Health endpoint
+app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok" })
+})
 
-/* Routes */
 const authRouter = require("./routes/auth.routes")
 const interviewRouter = require("./routes/interview.routes")
 
 app.use("/api/auth", authRouter)
 app.use("/api/interview", interviewRouter)
 
-
-/**
- * ✅ LESSON 41: 404 Handler
- * Koi bhi unknown route hit kare toh clean response do
- * Bina iske Express ka default ugly HTML error aata hai
- */
 app.use((req, res) => {
     res.status(404).json({
         message: `Route ${req.method} ${req.originalUrl} not found.`
     })
 })
 
-
-/**
- * ✅ LESSON 42: Global Error Handler — Sabse Important!
- * Ye Express ka special middleware hai — 4 parameters hote hain (err, req, res, next)
- * Kisi bhi route ya middleware mein agar next(error) call ho
- * ya koi unhandled error aaye toh yahan aata hai
- * Production mein ek jagah se saare errors handle hote hain
- */
 app.use((err, req, res, next) => {
     console.error("Global Error Handler:", err)
 
-    // ✅ CORS error
     if (err.message?.startsWith("CORS blocked")) {
         return res.status(403).json({ message: err.message })
     }
 
-    // ✅ JSON parse error — invalid JSON body bheja
     if (err.type === "entity.parse.failed") {
         return res.status(400).json({ message: "Invalid JSON in request body." })
     }
 
-    // ✅ Request size limit exceed
     if (err.type === "entity.too.large") {
         return res.status(413).json({ message: "Request body too large. Maximum size is 10kb." })
     }
 
-    // ✅ Baaki sab errors
     res.status(err.status || 500).json({
         message: err.message || "Internal server error.",
-        // Development mein stack trace dikhao, production mein nahi
         ...(process.env.NODE_ENV === "development" && { stack: err.stack })
     })
 })
-
 
 module.exports = app

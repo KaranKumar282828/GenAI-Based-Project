@@ -1,11 +1,18 @@
+import { useEffect } from "react"
 import { RouterProvider } from "react-router"
 import { router } from "./app.routes.jsx"
 import { AuthProvider } from "./features/auth/auth.context.jsx"
 import { InterviewProvider } from "./features/interview/interview.context.jsx"
 import "./style.scss"  // ✅ Global styles yahan import karo — ek jagah se
+import { keepServerAlive } from "./utils/keepAlive"
 
 
 function App() {
+
+    useEffect(() => {
+        // ✅ Render free tier — server so na jaye
+        keepServerAlive()
+    }, []) 
     return (
         <AuthProvider>
             {/**

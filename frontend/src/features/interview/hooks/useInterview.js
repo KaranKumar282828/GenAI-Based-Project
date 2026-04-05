@@ -13,7 +13,15 @@ export const useInterview = () => {
         throw new Error("useInterview must be used within an InterviewProvider")
     }
 
-    const { loading, setLoading, report, setReport, reports, setReports, error, setError } = context
+    const {
+        report, setReport,
+        reports, setReports,
+        error, setError,
+        generatingReport, setGeneratingReport,
+        fetchingReport, setFetchingReport,
+        fetchingReports, setFetchingReports,
+        downloadingResume, setDownloadingResume,
+    } = context
 
 
     const extractErrorMessage = (error) => {
@@ -35,7 +43,7 @@ export const useInterview = () => {
 
 
     const generateReport = async ({ jobDescription, selfDescription, resumeFile }) => {
-        setLoading(true)
+        setGeneratingReport(true)
         setError(null)
         try {
             const response = await generateInterviewReport({ jobDescription, selfDescription, resumeFile })
@@ -47,13 +55,13 @@ export const useInterview = () => {
             console.error("generateReport Error:", error)
             return null
         } finally {
-            setLoading(false)
+            setGeneratingReport(false)
         }
     }
 
 
     const getReportById = async (interviewId, isMounted) => {
-        setLoading(true)
+        setFetchingReport(true)  // ✅ Sirf fetch loading
         setError(null)
         try {
             const response = await getInterviewReportById(interviewId)
@@ -71,14 +79,14 @@ export const useInterview = () => {
             return null
         } finally {
             if (isMounted?.current) {
-                setLoading(false)
+                setFetchingReport(false)
             }
         }
     }
 
 
     const getReports = async (isMounted) => {
-        setLoading(true)
+        setFetchingReports(true)  // ✅ Sirf reports fetch loading
         setError(null)
         try {
             const response = await getAllInterviewReports()
@@ -96,14 +104,14 @@ export const useInterview = () => {
             return null
         } finally {
             if (isMounted?.current) {
-                setLoading(false)
+                setFetchingReports(false) 
             }
         }
     }
 
 
     const getResumePdf = async (interviewReportId) => {
-        setLoading(true)
+        setDownloadingResume(true)  // ✅ Sirf download loading
         setError(null)
         try {
             const response = await generateResumePdf({ interviewReportId })
@@ -120,7 +128,7 @@ export const useInterview = () => {
             setError(message)
             console.error("getResumePdf Error:", error)
         } finally {
-            setLoading(false)
+            setDownloadingResume(false)
         }
     }
 
@@ -149,5 +157,6 @@ export const useInterview = () => {
     }, [ interviewId ])
 
 
-    return { loading, error, report, reports, generateReport, getReportById, getReports, getResumePdf }
+    return { // ✅ Granular loading states
+        generatingReport, fetchingReport, fetchingReports, downloadingResume, error, report, reports, generateReport, getReportById, getReports, getResumePdf }
 }

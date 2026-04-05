@@ -3,7 +3,11 @@ import { createContext, useState, useCallback } from "react"
 export const InterviewContext = createContext()
 
 export const InterviewProvider = ({ children }) => {
-    const [loading, setLoading] = useState(false)
+    // ✅ Alag alag loading states — ek action doosre ko block na kare
+    const [generatingReport, setGeneratingReport] = useState(false)
+    const [fetchingReport, setFetchingReport] = useState(false)
+    const [fetchingReports, setFetchingReports] = useState(false)
+    const [downloadingResume, setDownloadingResume] = useState(false)
     const [report, setReport] = useState(null)
     const [reports, setReports] = useState([])
 
@@ -45,7 +49,11 @@ export const InterviewProvider = ({ children }) => {
     return (
         <InterviewContext.Provider value={{
             // States
-            loading, setLoading,
+            // ✅ Granular loading states
+            generatingReport, setGeneratingReport,
+            fetchingReport, setFetchingReport,
+            fetchingReports, setFetchingReports,
+            downloadingResume, setDownloadingResume,
             report, setReport,
             reports, setReports,
             error, setError,      // ✅ Error state add kiya
