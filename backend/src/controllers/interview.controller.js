@@ -8,14 +8,11 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 const ALLOWED_MIME_TYPE = "application/pdf"
 
 
-// ✅ pdf2json se text extract karne ka helper
-// ✅ Sirf ye helper update karo — baaki sab same
 const extractTextFromPdf = (buffer) => {
     return new Promise((resolve, reject) => {
         const pdfParser = new PDFParser()
 
         pdfParser.on("pdfParser_dataReady", (pdfData) => {
-            // ✅ Safe decode — crash nahi hoga
             const safeDecodeURI = (str) => {
                 try {
                     return decodeURIComponent(str)
@@ -42,12 +39,16 @@ const extractTextFromPdf = (buffer) => {
 }
 
 
+// ✅ Resume OR selfDescription — koi ek hona chahiye
 function validateGenerateReportInput(req) {
     const errors = []
 
-    if (!req.file) {
-        errors.push("Resume file is required.")
-    } else {
+    const hasResume = req.file && req.file.size > 0
+    const hasSelfDescription = req.body.selfDescription &&
+                               req.body.selfDescription.trim() !== ""
+
+    // ✅ File validation — sirf tab jab file upload ki ho
+    if (hasResume) {
         if (req.file.mimetype !== ALLOWED_MIME_TYPE) {
             errors.push("Only PDF files are allowed.")
         }
@@ -56,8 +57,9 @@ function validateGenerateReportInput(req) {
         }
     }
 
-    if (!req.body.selfDescription || req.body.selfDescription.trim() === "") {
-        errors.push("selfDescription is required.")
+    // ✅ Resume ya selfDescription — koi ek toh hona chahiye
+    if (!hasResume && !hasSelfDescription) {
+        errors.push("Please upload a resume or provide a self description.")
     }
 
     if (!req.body.jobDescription || req.body.jobDescription.trim() === "") {
@@ -78,20 +80,23 @@ async function generateInterViewReportController(req, res) {
             })
         }
 
-        // ✅ pdf2json wala helper use karo
-        const resumeText = await extractTextFromPdf(req.file.buffer)
-
-        if (!resumeText || resumeText.trim() === "") {
-            return res.status(400).json({
-                message: "Could not extract text from the uploaded PDF. Please make sure the PDF contains readable text and is not a scanned image."
-            })
-        }
-
         const { selfDescription, jobDescription } = req.body
+        let resumeText = ""
+
+        // ✅ Sirf tab PDF parse karo jab file upload ki ho
+        if (req.file) {
+            resumeText = await extractTextFromPdf(req.file.buffer)
+
+            if (!resumeText || resumeText.trim() === "") {
+                return res.status(400).json({
+                    message: "Could not extract text from the uploaded PDF. Please make sure the PDF contains readable text and is not a scanned image."
+                })
+            }
+        }
 
         const interViewReportByAi = await generateInterviewReport({
             resume: resumeText,
-            selfDescription: selfDescription.trim(),
+            selfDescription: selfDescription?.trim() || "",
             jobDescription: jobDescription.trim()
         })
 
@@ -104,7 +109,7 @@ async function generateInterViewReportController(req, res) {
         const interviewReport = await interviewReportModel.create({
             user: req.user.id,
             resume: resumeText,
-            selfDescription: selfDescription.trim(),
+            selfDescription: selfDescription?.trim() || "",
             jobDescription: jobDescription.trim(),
             ...interViewReportByAi
         })
