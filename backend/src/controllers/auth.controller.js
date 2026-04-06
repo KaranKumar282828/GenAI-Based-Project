@@ -11,11 +11,12 @@ const tokenBlacklistModel = require("../models/blacklist.model")
  * secure: true     — sirf HTTPS pe cookie jayegi (production mein)
  * sameSite: strict — CSRF attacks rokta hai
  */
+// ✅ Sirf ye constant badlo — baaki sab same
 const COOKIE_OPTIONS = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 24 * 60 * 60 * 1000  // ✅ 1 din — JWT expiry ke saath sync
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    maxAge: 24 * 60 * 60 * 1000
 }
 
 

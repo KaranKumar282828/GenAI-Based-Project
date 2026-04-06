@@ -11,11 +11,13 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             const pathname = window.location.pathname
-            // ✅ Clean check — login aur register dono
             const isPublicPage = pathname.includes("/login") ||
                                  pathname.includes("/register")
 
-            if (!isPublicPage) {
+            // ✅ getMe 401 ignore karo — cookie cross-domain issue
+            const isGetMe = error.config?.url?.includes("/api/auth/get-me")
+
+            if (!isPublicPage && !isGetMe) {
                 window.location.href = "/login"
             }
         }
