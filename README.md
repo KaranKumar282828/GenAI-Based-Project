@@ -10,7 +10,7 @@
 **HireEdge analyzes job descriptions and your profile to create 
 personalized interview strategies using AI.**
 
-[Live Demo](#) • [Features](#Features) • [Setup](#Setup) • [Screenshots](#Screenshots)
+[Live Demo](#) • [Features](##Features) • [Setup](##Setup) • [Screenshots](##Screenshots)
 
 </div>
 
